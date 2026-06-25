@@ -1,86 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Alert,
-  Badge,
-  Box,
-  CircularProgress,
-  Divider,
-  Pagination,
-  Stack,
-  Typography,
+  Container, Typography, Box, CircularProgress,
+  Alert, Divider, Badge
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import { useAllNotifications } from "../hooks/useNotifications";
+import NotificationCard from "../components/NotificationCard";
+import NotificationFilter from "../components/NotificationFilter";
+import { Log, setLoggerToken } from "../logger.js";
 
-import { NotificationCard } from "../components/NotificationCard";
-import { NotificationFilter } from "../components/NotificationFilter";
-import { useNotifications } from "../hooks/useNotifications";
+export default function NotificationsPage() {
+  const [filters, setFilters] = useState({});
+  const { notifications, loading, error, viewedIds } = useAllNotifications(filters);
 
-export function NotificationsPage() {
-  const [filter, setFilter] = useState();
-  const [page, setPage] = useState("1");
+  useEffect(() => {
+    Log("frontend", "info", "page", "NotificationsPage mounted");
+  }, []);
 
-  const { notifications, totalPages, loading, error } = useNotifications();
-
-  const unreadCount = 2;
-
-  const handleFilterChange = (newFilter) => {
-
-  };
-
-  const handlePageChange = (_, newPage) => {
-
-  };
+  const newCount = notifications.filter((n) => !viewedIds.has(n.ID)).length;
 
   return (
-    <Box sx={{ maxWidth: 720, mx: "auto", px: 2, py: 4 }}>
-      <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
-        <Badge badgeContent={unreadCount} color="primary" max={99}>
-          <NotificationsIcon sx={{ fontSize: 28 }} />
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Box display="flex" alignItems="center" gap={2} mb={3}>
+        <Badge badgeContent={newCount} color="primary">
+          <NotificationsIcon fontSize="large" color="action" />
         </Badge>
-        <Typography variant="h5" fontWeight={700}>
-          Notifications
-        </Typography>
-      </Stack>
-
-      <Divider sx={{ mb: 3 }} />
-
-      <Box sx={{ marginBottom: 3 }}>
-        <NotificationFilter value={filter} onChange={handleFilterChange} />
+        <Box>
+          <Typography variant="h5" fontWeight={700}>
+            All Notifications
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {notifications.length} total · {newCount} new
+          </Typography>
+        </Box>
       </Box>
 
-      {true && (
+      <NotificationFilter filters={filters} onChange={setFilters} />
+
+      <Divider sx={{ mb: 2 }} />
+
+      {loading && (
         <Box display="flex" justifyContent="center" py={6}>
           <CircularProgress />
         </Box>
       )}
 
-      {!loading && error && (
-        <Alert severity="error">Failed to load notifications: {error}</Alert>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Failed to load notifications: {error}
+        </Alert>
       )}
 
-      {loading && !error && notifications.length == "0" && (
-        <Alert severity="info">Something message</Alert>
+      {!loading && !error && notifications.length === 0 && (
+        <Alert severity="info">No notifications found.</Alert>
       )}
 
-      {loading && !error && notifications.length > 0 && (
-        <Stack spacing={1.5}>
-          {notifications.map((n) => (
-            <></>
-          ))}
-        </Stack>
-      )}
-
-      {!loading && (
-        <Box display="flex" justifyContent="center" mt={4}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={handlePageChange}
-            color="primary"
-            shape="rounded"
-          />
-        </Box>
-      )}
-    </Box>
+      {!loading && notifications.map((n) => (
+        <NotificationCard
+          key={n.ID}
+          notification={n}
+          isNew={!viewedIds.has(n.ID)}
+        />
+      ))}
+    </Container>
   );
 }
